@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"></script>
+  <title>WebChat Trybe</title>
+</head>
+<body>
+  <h1>WebChat Trybe</h1>
+  <input id="changeNickname" data-testid="nickname-box" type="text" placeholder="Altere seu nick" />
+  <button id="btnName" data-testid="nickname-button">Alterar Usuario</button>
+  <br />
+  <ul id="listaDeUsuarios">      
+  </ul>
+  <br />
+  <ul id='listaMessages'>
+  </ul>
+  <br />
+  <input id="inputMessage" data-testid="message-box" type="text" />
+  <button id="btnSend" type="button" data-testid="send-button">Enviar</button>  
+</body>
+
+  <script>
+    const socket = io();
+    const btnSend = document.querySelector('#btnSend'); //Ouve/utiliza do id btnSend
+    const inputMessage = document.querySelector('#inputMessage'); //Ouve/utiliza do id inputMessage
+    btnSend.addEventListener('click', () =>{ //apos acontecer o click isso ocorre
+      const user = sessionStorage.getItem('user'); 
+      socket.emit('message', { chatMessage: inputMessage.value, nickname: user });//emit o valor dentro do input com id inputMessage e manda o nickname do usario que a enviou
+      inputMessage.value = ''; //zera o valor para quando enviar o input fique em branco
+      return false;
+    });
+
+    const btnName = document.querySelector('#btnName'); //Ouve/utiliza do id btnName
+    const inputNickname = document.querySelector('#changeNickname'); //Ouve/utiliza do id changeNickname
+    btnName.addEventListener('click', () =>{ //apos acontecer o click isso ocorre
+      socket.emit('setNickname', inputNickname.value);//emit o valor dentro do input com id changeNickname
+      inputNickname.value = ''; //zera o valor para quando enviar o input fique em branco
+      return false;
+    });
+    const loadMessages = (messages) => { //faz um forEach com as mensagens do bd
+      messages.forEach(({ message, nickname, timestamp }) => createMessage(`${timestamp} - ${nickname}: ${message}`));
+    }
+    const createMessage = (message) => { //faz o set para as mensagens aparacerem dentro da lista <ul>
+      const messagesUl = document.querySelector('#listaMessages'); //Ouve/utiliza do id 
+      const li = document.createElement('li'); //cria uma <li>
+      li.setAttribute('data-testid', "message");// atribue um datatestid a <li> criada
+      li.innerText = message;//insere a menssage no texto dentro de li
+      messagesUl.appendChild(li);//adiciona li criado como filho do ul ferenciado no id
+    }
+    const listOnlineUsers = (onlineUsers) => {
+      const user = sessionStorage.getItem('user');
+      const onlineUsersUl = document.querySelector('#listaDeUsuarios'); //Ouve/utiliza do id 
+      onlineUsersUl.innerHTML = ''; //limpa toda lista para n haver duplicações
+      onlineUsers.forEach((onlineUser) => {
+        const li = document.createElement('li');//cria uma <li>
+        li.setAttribute('data-testid', "online-user");// atribue um datatestid a <li> criada
+        li.innerText = onlineUser;//insere o usuario no texto dentro de li
+        console.log(li.innerText)
+        user === onlineUser ? onlineUsersUl.prepend(li) : onlineUsersUl.appendChild(li);// testa para ver se o nick add é igual ao usuaio logado se for vai ser como primieiro <li>
+      });
+    }
+    socket.on('history', (messages) => loadMessages(messages));
+    socket.on('message', (message) => createMessage(message));
+    socket.on('Nick', (user) => sessionStorage.setItem('user', user));
+    socket.on('onlineUsers', (array) => listOnlineUsers(array));
+  </script>
+</html>
